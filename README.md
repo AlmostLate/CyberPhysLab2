@@ -124,7 +124,7 @@ python src/utils/data_loader.py
 
 ```bash
 # из виртуального окружения (venv), запросы идут к контейнерам
-python src/inference.py --input "Клиент 35 лет, женат, высшее образование, работает в IT, доход 75000 в год"
+python -m src.inference --input "Клиент 35 лет, женат, высшее образование, работает в IT, доход 75000 в год"
 ```
 
 ---
@@ -159,7 +159,7 @@ curl http://localhost:11434/api/tags
 
 В новом терминале (с активированным venv):
 ```bash
-python src/llm/service.py
+python -m src.llm.service
 ```
 
 Сервис поднимется на `http://localhost:8000`. Документация API: `http://localhost:8000/docs`.
@@ -168,7 +168,7 @@ python src/llm/service.py
 
 Ещё один терминал:
 ```bash
-python src/mcp/server.py
+python -m src.mcp.server
 ```
 
 Сервис поднимется на `http://localhost:8001`. Список инструментов: `http://localhost:8001/tools`.
@@ -177,7 +177,7 @@ python src/mcp/server.py
 
 ```bash
 python src/utils/data_loader.py
-python src/inference.py --input "Клиент 45 лет, женат, образование Master's, работает в Finance"
+python -m src.inference --input "Клиент 45 лет, женат, образование Master's, работает в Finance"
 ```
 
 ---

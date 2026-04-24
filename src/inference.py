@@ -105,22 +105,25 @@ def run_mcp_tools_example():
     print(f"   Recommendation: {risk_result['recommendation']}")
 
 
-def run_rag_example():
+def run_rag_example(query: str = "35 year old married professional with high income"):
     """Run RAG retrieval example."""
     print("\n" + "="*50)
     print("RAG RETRIEVAL EXAMPLE")
     print("="*50)
-    
+
     retriever = RAGRetriever()
-    
-    query = "35 year old married professional with high income"
+
     print(f"\nQuery: {query}")
-    
-    # Note: This requires the dataset to be indexed first
-    # results = retriever.retrieve(query, top_k=3)
-    # print(f"Found {len(results)} similar cases")
-    
-    print("Note: Run index_dataset first to enable retrieval")
+    results = retriever.retrieve(query, top_k=3)
+
+    if results:
+        print(f"Found {len(results)} similar cases:")
+        for i, r in enumerate(results, 1):
+            print(f"\n  Case {i} (similarity: {r.get('_distance', 0):.3f}):")
+            print(f"    {r.get('text', '')}")
+            print(f"    Income: {r.get('income', 'Unknown')}")
+    else:
+        print("No results found. Make sure the dataset is indexed.")
 
 
 def run_ml_example():
@@ -169,7 +172,7 @@ def main():
         run_mcp_tools_example()
     
     if args.example in ["rag", "all"]:
-        run_rag_example()
+        run_rag_example(args.input or "35 year old married professional with high income")
     
     if args.example in ["ml", "all"]:
         run_ml_example()

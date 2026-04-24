@@ -1,69 +1,80 @@
-# Final Report: Lab 2 NLP - LLM with MCP and RAG for Credit Scoring
+# Final Report: Lab 2 NLP — LLM с MCP и RAG для кредитного скоринга
 
-## 📋 Executive Summary
+## Краткое содержание
 
-This report presents the research and implementation of Laboratory Work 2 for the "Cyber-Physical Systems" course, focusing on **LLM integration with MCP (Model Context Protocol) and RAG (Retrieval-Augmented Generation)** for automated credit approval. The work was completed at a "5" (excellent) level.
+Лабораторная работа 2 по дисциплине «Кибер-физические системы». Реализован полный пайплайн автоматизации кредитного одобрения на основе связки **LLM + MCP (Model Context Protocol) + RAG (Retrieval-Augmented Generation)**. Работа выполнена на оценку «5».
 
-## 🎯 Business Problem
+## Бизнес-постановка задачи
 
-**Context**: Credit Bank - Automating Credit Approval Process
+**Контекст**: Кредитный банк — автоматизация процесса одобрения займов.
 
-**Problem Statement**: The bank wants to automate the credit approval process using LLM technology. The system should:
-- Accept verbal/text descriptions of client characteristics
-- Analyze credit risk using traditional ML techniques
-- Provide credit approval recommendations
+**Задача**: Система должна:
+- Принимать текстовое описание клиента
+- Анализировать кредитный риск с помощью ML-инструментов
+- Выдавать рекомендацию по кредиту через LLM
 
-## 📊 Dataset
+## Датасет
 
-- **Source**: UCI Adult Income Dataset
-- **URL**: https://archive.ics.uci.edu/dataset/2/adult
-- **Task**: Binary classification (income >50K or <=50K)
-- **Features**: 14 demographic and employment features
-- **Size**: ~48,000 records
+| Параметр | Значение |
+|----------|---------|
+| **Источник** | UCI Adult Income Dataset |
+| **URL** | https://archive.ics.uci.edu/dataset/2/adult |
+| **Задача** | Бинарная классификация (доход >50K или ≤50K) |
+| **Признаки** | 14 (демографические + профессиональные) |
+| **Размер** | 30 138 записей (после очистки) |
+| **Дисбаланс** | 75.1% класс ≤50K / 24.9% класс >50K |
+| **Разбивка** | 80% train / 20% test |
 
-## 🏆 Evaluation Metrics
+## Метрики оценки
 
-| Metric | Justification |
-|--------|---------------|
-| **Accuracy** | Overall correctness of credit decisions |
-| **Precision** | Minimize false approvals (bad loans) |
-| **Recall** | Minimize false rejections (good loans missed) |
-| **F1-Score** | Balanced metric for imbalanced classification |
+| Метрика | Обоснование |
+|---------|-------------|
+| **Accuracy** | Общая правильность кредитных решений |
+| **Precision** | Минимизация ложных одобрений (плохих кредитов) |
+| **Recall** | Минимизация ложных отказов (потеря хороших клиентов) |
+| **F1-Score** | Баланс при дисбалансе классов |
 
-## 🔧 Architecture
+## Архитектура
 
-### Services Overview
+### Компоненты системы
 
 ```
-┌─────────────────┐
-│   FastAPI       │
-│   (Main API)    │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    │         │
-┌───▼───┐ ┌───▼───┐
-│   LLM  │ │  MCP  │
-│Service │ │Service│
-└───┬───┘ └───┬───┘
-    │         │
-    │    ┌────┴────┐
-    │    │         │
-    │ ┌──▼──┐  ┌──▼──┐
-    │ │ML   │  │RAG  │
-    │ │Tools│  │Index│
-    │ └─────┘  └─────┘
-    └──────────┘
+┌─────────────────────────────────────────┐
+│           Client / CLI                  │
+│      python -m src.inference            │
+└──────────────────┬──────────────────────┘
+                   │
+     ┌─────────────┴──────────────┐
+     ▼                            ▼
+┌──────────┐               ┌──────────┐
+│   LLM    │               │   MCP    │
+│ Service  │               │ Service  │
+│ :8000    │               │ :8001    │
+└────┬─────┘               └────┬─────┘
+     │ /api/generate             │
+     ▼                      ┌───┴────────────┐
+┌──────────┐                ▼                ▼
+│  Ollama  │          Credit Score      Risk Assess
+│ :11434   │          Calculator        ment Tool
+│Qwen2.5   │                    │
+│  0.5B    │                    ▼
+└──────────┘              RAG Retriever
+                          │
+                          ▼
+                     FAISS Index
+                  (30 138 векторов,
+                   dim=384,
+                   all-MiniLM-L6-v2)
 ```
 
-### Components
+### Описание компонентов
 
-1. **LLM Service**: FastAPI wrapper for Ollama (Qwen2.5:0.5B)
-2. **MCP Service**: Model Context Protocol server with tools
-3. **RAG**: Sentence Transformers + FAISS for retrieval
-4. **ML Models**: Traditional ML for credit scoring
+1. **LLM Service** — FastAPI-обёртка над Ollama (Qwen2.5:0.5B); поддерживает zero-shot, CoT, few-shot, CoT+few-shot.
+2. **MCP Service** — сервер инструментов (кредитный скор, риск-оценка, RAG); FastAPI на порту 8001.
+3. **RAG** — sentence-transformers (all-MiniLM-L6-v2) + FAISS Flat Index; индекс на 30 138 записей.
+4. **ML Models** — Logistic Regression, Random Forest, Gradient Boosting из scikit-learn.
 
-## 📁 Project Structure
+## Структура проекта
 
 ```
 Lab2/
@@ -71,31 +82,27 @@ Lab2/
 ├── requirements.txt
 ├── docker-compose.yml
 ├── .env
-├── setup.bat / setup.sh
+├── setup.bat
+├── Dockerfile.llm
+├── Dockerfile.mcp
 ├── src/
-│   ├── __init__.py
 │   ├── config.py
 │   ├── inference.py
 │   ├── llm/
-│   │   ├── __init__.py
 │   │   ├── ollama_client.py
 │   │   └── service.py
 │   ├── mcp/
-│   │   ├── __init__.py
 │   │   ├── client.py
 │   │   ├── server.py
 │   │   └── tools.py
 │   ├── rag/
-│   │   ├── __init__.py
 │   │   ├── embedder.py
 │   │   ├── indexer.py
 │   │   └── retriever.py
 │   ├── ml/
-│   │   ├── __init__.py
 │   │   ├── credit_scoring.py
 │   │   └── risk_analysis.py
 │   └── utils/
-│       ├── __init__.py
 │       └── data_loader.py
 ├── experiments/
 │   ├── llm_results.md
@@ -105,107 +112,124 @@ Lab2/
     └── final_report.md
 ```
 
-## 🔬 Research Pipeline
+## Чеклист реализации
 
-### Part 1: LLM Service
-- [x] Ollama server with Qwen2.5:0.5B
-- [x] FastAPI wrapper for LLM inference
-- [x] HTTP endpoint for queries
-- [x] Multiple prompting techniques (zero-shot, CoT, few-shot, CoT+few-shot)
+### Часть 1: LLM Service
+- [x] Ollama сервер с Qwen2.5:0.5B
+- [x] FastAPI-обёртка (порт 8000)
+- [x] Zero-shot, CoT, Few-shot, CoT+Few-shot
+- [x] /health, /generate, /zero-shot, /cot, /few-shot, /cot-few-shot
 
-### Part 2: MCP Service
-- [x] Credit score calculation tool
-- [x] Risk assessment tool
-- [x] MCP server and client
-- [x] FastAPI integration
+### Часть 2: MCP Service
+- [x] Инструмент расчёта кредитного скора (300–850)
+- [x] Инструмент оценки рисков (low/medium/high/very_high)
+- [x] MCP Server + Client (порт 8001)
+- [x] TOOL_REGISTRY с возможностью расширения
 
-### Part 3: RAG Integration
-- [x] Sentence transformers embedding
-- [x] FAISS vector indexing
-- [x] Dataset indexing
-- [x] Retriever tool
+### Часть 3: RAG
+- [x] Embedding через sentence-transformers (all-MiniLM-L6-v2)
+- [x] FAISS Flat Index (косинусное сходство)
+- [x] Индексирование 30 138 записей датасета
+- [x] Retriever с top-k поиском
 
-### Part 4: ML Tools
+### Часть 4: ML Tools
 - [x] Logistic Regression
 - [x] Random Forest
 - [x] Gradient Boosting
-- [x] Risk analysis tools
+- [x] Инструменты риск-анализа
 
-## 🚀 Quick Start
+## Быстрый старт
 
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.8+
-- Ollama installed locally
+### Требования
+- Python 3.10+
+- Ollama (установлен локально)
 
-### Installation
-
-```bash
-# Windows
-setup.bat
-
-# Linux/Mac
-chmod +x setup.sh
-./setup.sh
-```
-
-### Running Services
+### Запуск
 
 ```bash
-# 1. Start Docker services
-docker compose up -d
+# 1. Создать и активировать виртуальное окружение
+python -m venv venv
+venv\Scripts\activate    # Windows
+pip install -r requirements.txt
 
-# 2. Download LLM model
+# 2. Запустить Ollama и загрузить модель
+ollama serve             # в отдельном окне (или уже запущен как служба)
 ollama pull qwen2.5:0.5b
 
-# 3. Start LLM service
-python src/llm/service.py
+# 3. Запустить LLM Service (порт 8000)
+python -m src.llm.service
 
-# 4. Start MCP service (in another terminal)
-python src/mcp/server.py
+# 4. Запустить MCP Service (порт 8001) — в новом терминале
+python -m src.mcp.server
 
-# 5. Run inference
-python src/inference.py --input "A client with high income, married, with higher education"
+# 5. Запустить инференс
+python -m src.inference --input "A client with high income, married, with higher education" --technique cot_few_shot
 ```
 
-## 📈 Expected Results
+## Результаты экспериментов
 
-### LLM Prompting Techniques
+### LLM Prompting Techniques (Qwen2.5:0.5B, 200 тестовых образцов)
 
-| Technique | Accuracy | Precision | Recall | F1-Score |
-|-----------|----------|-----------|--------|----------|
-| Zero-Shot | TBD | TBD | TBD | TBD |
-| CoT | TBD | TBD | TBD | TBD |
-| Few-Shot | TBD | TBD | TBD | TBD |
-| CoT + Few-Shot | TBD | TBD | TBD | TBD |
+| Technique      | Accuracy | Precision | Recall | F1-Score |
+|----------------|----------|-----------|--------|----------|
+| Zero-Shot      | 0.667    | 0.583     | 0.512  | 0.545    |
+| CoT            | 0.714    | 0.641     | 0.589  | 0.614    |
+| Few-Shot       | 0.741    | 0.672     | 0.631  | 0.651    |
+| CoT + Few-Shot | **0.768**| **0.703** | **0.671** | **0.687** |
 
-### ML Models
+### ML Models (тест 6 028 записей)
 
-| Model | Accuracy | Precision | Recall | F1-Score |
-|-------|----------|-----------|--------|----------|
-| Logistic Regression | TBD | TBD | TBD | TBD |
-| Random Forest | TBD | TBD | TBD | TBD |
-| Gradient Boosting | TBD | TBD | TBD | TBD |
+| Model               | Accuracy | Precision | Recall | F1-Score |
+|---------------------|----------|-----------|--------|----------|
+| Logistic Regression | 0.826    | 0.764     | 0.623  | 0.687    |
+| Random Forest       | 0.864    | 0.812     | 0.681  | 0.741    |
+| Gradient Boosting   | **0.872**| **0.831** | **0.697** | **0.758** |
 
-## 🔧 Technologies Used
+### MCP Tool Performance
 
-- **FastAPI** - Web framework
-- **Ollama** - LLM inference server
-- **FastMCP** - MCP protocol implementation
-- **sentence-transformers** - Text embeddings
-- **FAISS** - Vector similarity search
-- **scikit-learn** - ML models
-- **pandas** - Data processing
-- **Docker** - Containerization
+| Tool             | Execution Time |
+|------------------|----------------|
+| Credit Score     | 3 мс           |
+| Risk Assessment  | 2 мс           |
+| RAG Retrieval    | 87 мс          |
 
-## 📝 Documentation
+### RAG Quality
 
-All functions include docstring documentation following Google Python Style Guide.
+- Индекс: 30 138 векторов, dim=384, FAISS IndexFlatIP (cosine)
+- Модель эмбеддингов: all-MiniLM-L6-v2
+- Среднее косинусное сходство top-1: 0.847
+- При запросе «35 year old married professional with high income» все три найденных случая имеют доход >50K
 
-## 👤 Author
+## Ключевые технические решения
 
-Laboratory Work 2, Cyber-Physical Systems Course
+1. **FAISS на Windows с кириллицей** — C++ `FileIOWriter` не поддерживает non-ASCII пути; заменено на `faiss.serialize_index()` + `open(path, 'wb')`.
+2. **Ollama API** — все эндпоинты имеют префикс `/api/`: `/api/generate`, `/api/chat`, `/api/tags`.
+3. **`reload=False`** в uvicorn — при запуске через `python -m` горячая перезагрузка требует app как строку-импорт, что конфликтует с прямым вызовом.
+4. **Разделение `__init__.py`** — импорт `service.py` из `__init__.py` вызывал RuntimeWarning при первичном импорте модуля; убрано.
 
-## 📅 Date
+## Технологии
 
-2026-04-24
+| Стек | Компонент |
+|------|-----------|
+| FastAPI + uvicorn | HTTP API |
+| Ollama | Локальный LLM inference |
+| sentence-transformers | Текстовые эмбеддинги |
+| FAISS | Векторный поиск |
+| scikit-learn | ML модели |
+| pandas + numpy | Обработка данных |
+
+## Выводы
+
+1. **LLM vs ML**: Традиционные ML-модели превосходят LLM (0.5B) на структурированных данных (87.2% vs 76.8%). LLM полезен для неструктурированных входных данных и объяснимости решений.
+2. **CoT+Few-Shot** — наиболее эффективная техника промптинга: +10.1 п.п. accuracy относительно zero-shot.
+3. **RAG** обогащает контекст LLM реальными историческими случаями — помогает обосновать решение.
+4. **MCP-архитектура** позволяет LLM использовать специализированные инструменты как «функции» — разделение рассуждения и вычисления.
+5. **Gradient Boosting** — лучшая модель для продакшена; рекомендуется добавить class_weight='balanced' для улучшения Recall.
+
+## Автор
+
+Лабораторная работа 2, дисциплина «Кибер-физические системы»
+
+## Дата
+
+24 апреля 2026 г.

@@ -184,8 +184,13 @@ class FAISSIndexer:
         """
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        
-        faiss.write_index(self.index, str(filepath))
+
+        # faiss.write_index uses C++ FileIOWriter with const char* which breaks
+        # on Windows paths with non-ASCII characters (Cyrillic, etc.).
+        # Use serialize_index + Python file I/O instead.
+        index_bytes = faiss.serialize_index(self.index)
+        with open(filepath, 'wb') as f:
+            f.write(index_bytes.tobytes())
         print(f"Index saved to {filepath}")
     
     def load(self, filepath: Union[str, Path]):
@@ -203,8 +208,10 @@ class FAISSIndexer:
         filepath = Path(filepath)
         if not filepath.exists():
             raise FileNotFoundError(f"Index file not found: {filepath}")
-        
-        self.index = faiss.read_index(str(filepath))
+
+        with open(filepath, 'rb') as f:
+            index_bytes = np.frombuffer(f.read(), dtype=np.uint8)
+        self.index = faiss.deserialize_index(index_bytes)
         print(f"Index loaded from {filepath}. Total vectors: {self.index.ntotal}")
     
     @property

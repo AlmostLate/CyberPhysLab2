@@ -82,8 +82,8 @@ if "%OLLAMA_FOUND%"=="1" (
     echo Вариант B - локально ^(Ollama уже установлена^):
     echo   ollama serve                      ^<-- в отдельном терминале
     echo   ollama pull qwen2.5:0.5b
-    echo   python src\llm\service.py         ^<-- ещё один терминал
-    echo   python src\mcp\server.py          ^<-- ещё один терминал
+    echo   python -m src.llm.service         ^<-- ещё один терминал
+    echo   python -m src.mcp.server          ^<-- ещё один терминал
     echo.
 )
 

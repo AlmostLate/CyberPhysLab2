@@ -299,14 +299,14 @@ def run_server():
     """
     app = create_mcp_app()
     
-    print(f"Starting MCP Server on {MCPServiceConfig.HOST}:{MCPServiceConfig.PORT}")
+    print(f"Starting MCP Server on http://0.0.0.0:{MCPServiceConfig.PORT}")
     print(f"Available tools: credit_score, risk_assessment, retrieve_similar")
     
     uvicorn.run(
         app,
         host="0.0.0.0",
         port=MCPServiceConfig.PORT,
-        reload=MCPServiceConfig.DEBUG
+        reload=False
     )
 
 

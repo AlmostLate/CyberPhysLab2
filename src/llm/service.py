@@ -17,6 +17,7 @@ import uvicorn
 
 from src.config import (
     LLMServiceConfig,
+    OllamaConfig,
     PromptingConfig,
     API,
     get_ollama_url
@@ -344,15 +345,15 @@ def run_service():
     """
     app = create_app()
     
-    print(f"Starting LLM Service on {LLMServiceConfig.HOST}:{LLMServiceConfig.PORT}")
-    print(f"Ollama URL: {LLMServiceConfig.HOST}")
-    print(f"Model: {LLMServiceConfig.MODEL_NAME}")
+    print(f"Starting LLM Service on http://0.0.0.0:{LLMServiceConfig.PORT}")
+    print(f"Ollama URL: {OllamaConfig.HOST}")
+    print(f"Model: {OllamaConfig.MODEL_NAME}")
     
     uvicorn.run(
         app,
         host="0.0.0.0",
         port=LLMServiceConfig.PORT,
-        reload=LLMServiceConfig.DEBUG
+        reload=False
     )
 
 
