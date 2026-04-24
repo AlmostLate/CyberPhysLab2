@@ -1,0 +1,17 @@
+FROM python:3.12-bookworm
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir fastapi uvicorn[standard] requests python-dotenv pydantic
+
+COPY src/ ./src/
+COPY .env* ./
+
+ENV PYTHONPATH=/app
+
+EXPOSE 8000
+
+CMD ["python", "src/llm/service.py"]

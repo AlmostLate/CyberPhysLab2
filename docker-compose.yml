@@ -1,0 +1,57 @@
+# Lab 2 - Docker Compose Configuration
+# This file configures the Ollama service for LLM inference
+
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: lab2_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - lab2_network
+
+  # FastAPI LLM Service
+  llm_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.llm
+    container_name: lab2_llm_service
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - MODEL_NAME=qwen2.5:0.5b
+    depends_on:
+      - ollama
+    networks:
+      - lab2_network
+
+  # MCP Service
+  mcp_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: lab2_mcp_service
+    ports:
+      - "8001:8001"
+    environment:
+      - LLM_SERVICE_URL=http://llm_service:8000
+      - MCP_PORT=8001
+    depends_on:
+      - llm_service
+    networks:
+      - lab2_network
+
+volumes:
+  ollama_data:
+
+networks:
+  lab2_network:
+    driver: bridge
